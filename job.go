@@ -1,9 +1,0 @@
-package job
-
-import (
-	"fmt"
-)
-
-func main() {
-	fmt.Println("This is a test!")
-}
