@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 // Many tests schedule a job for every second, and then wait at most a second
@@ -15,14 +17,20 @@ const FIVE_SECOND = 5*time.Second + 10*time.Millisecond
 
 // Start and stop cron with no entries.
 func TestNoEntries(t *testing.T) {
+
 	cron := New()
 	cron.Start()
 
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-stop(cron):
-	}
+	Convey("When have no entries.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
+
+		case <-stop(cron):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
 // Start, stop, then add an entry. Verify entry doesn't run.
@@ -34,16 +42,20 @@ func TestStopCausesJobsToNotRun(t *testing.T) {
 	cron.Start()
 	cron.Stop()
 	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	Convey("Start, stop, then add an entry. Verify entry doesn't run.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
+			// No job ran!
+			tag = true
+		case <-wait(wg):
 
-	select {
-	case <-time.After(ONE_SECOND):
-		// No job ran!
-	case <-wait(wg):
-		t.FailNow()
-	}
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-// Add a job, start cron, expect it runs.
+//
 func TestAddBeforeRunning(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -54,14 +66,19 @@ func TestAddBeforeRunning(t *testing.T) {
 	defer cron.Stop()
 
 	// Give cron 2 seconds to run our job (which is always activated).
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+	Convey("Add a job, start cron, expect it runs.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
+
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-//Del a job,del cron,expect it not runs.
+//
 func TestDelBeforeRunning(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -74,15 +91,19 @@ func TestDelBeforeRunning(t *testing.T) {
 	defer cron.Stop()
 
 	// Give cron 2 seconds to run our job (which is always activated).
-	select {
-	case <-time.After(FIVE_SECOND):
+	Convey("Del a job,del cron,expect it not runs.", t, func() {
+		tag := false
+		select {
+		case <-time.After(FIVE_SECOND):
+			tag = true
+		case <-wait(wg):
 
-	case <-wait(wg):
-		t.FailNow()
-	}
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-// Start cron, add a job, expect it runs.
+//
 func TestAddWhileRunning(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -91,15 +112,19 @@ func TestAddWhileRunning(t *testing.T) {
 	cron.Start()
 	defer cron.Stop()
 	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	Convey("Start cron, add a job, expect it runs.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
 
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-//Start cron, add a job ,and del it, expect not runs.
+//
 func TestDelWhileRunning(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -111,17 +136,20 @@ func TestDelWhileRunning(t *testing.T) {
 	cron.DelJob(id)
 
 	defer cron.Stop()
+	Convey("Start cron, add a job ,and del it, expect not runs.", t, func() {
+		// Give cron 2 seconds to run our job (which is always activated).
+		tag := false
+		select {
+		case <-time.After(FIVE_SECOND):
+			tag = true
+		case <-wait(wg):
 
-	// Give cron 2 seconds to run our job (which is always activated).
-	select {
-	case <-time.After(FIVE_SECOND):
-
-	case <-wait(wg):
-		t.FailNow()
-	}
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-// Test timing with Entries.
+//
 func TestSnapshotEntries(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -136,14 +164,17 @@ func TestSnapshotEntries(t *testing.T) {
 	case <-time.After(ONE_SECOND):
 		cron.Entries()
 	}
+	Convey("Test timing with Entries.", t, func() {
+		// Even though Entries was called, the cron should fire at the 2 second mark.
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
 
-	// Even though Entries was called, the cron should fire at the 2 second mark.
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
-
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
 // Test that the entries are correctly sorted.
@@ -163,14 +194,19 @@ func TestMultipleEntries(t *testing.T) {
 	cron.Start()
 	defer cron.Stop()
 
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+	Convey("Test that the entries are correctly sorted.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
+
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-// Test running the same job twice.
+//
 func TestRunningJobTwice(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -182,12 +218,17 @@ func TestRunningJobTwice(t *testing.T) {
 
 	cron.Start()
 	defer cron.Stop()
+	Convey("Test running the same job twice.", t, func() {
+		tag := false
+		select {
+		case <-time.After(2 * ONE_SECOND):
 
-	select {
-	case <-time.After(2 * ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
+
 }
 
 func TestRunningMultipleSchedules(t *testing.T) {
@@ -204,15 +245,19 @@ func TestRunningMultipleSchedules(t *testing.T) {
 
 	cron.Start()
 	defer cron.Stop()
+	Convey("Test running multischedules", t, func() {
+		tag := false
+		select {
+		case <-time.After(2 * ONE_SECOND):
 
-	select {
-	case <-time.After(2 * ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
-// Test that the cron is run in the local time zone (as opposed to UTC).
+//
 func TestLocalTimezone(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -225,12 +270,16 @@ func TestLocalTimezone(t *testing.T) {
 	cron.AddFunc(spec, func() { wg.Done() })
 	cron.Start()
 	defer cron.Stop()
+	Convey("Test that the cron is run in the local time zone (as opposed to UTC).", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
 
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
 type testJob struct {
@@ -242,7 +291,7 @@ func (t testJob) Run() {
 	t.wg.Done()
 }
 
-// Simple test using Runnables.
+//
 func TestJob(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -257,27 +306,49 @@ func TestJob(t *testing.T) {
 
 	cron.Start()
 	defer cron.Stop()
+	Convey("Simple test using Runnables.", t, func() {
+		tag := false
+		select {
+		case <-time.After(ONE_SECOND):
 
-	select {
-	case <-time.After(ONE_SECOND):
-		t.FailNow()
-	case <-wait(wg):
-	}
-
-	// Ensure the entries are in the right order.
-	expecteds := []string{"job2", "job4", "job5", "job1", "job3", "job0"}
-
-	var actuals []string
-	for _, entry := range cron.Entries() {
-		actuals = append(actuals, entry.Job.(testJob).name)
-	}
-
-	for i, expected := range expecteds {
-		if actuals[i] != expected {
-			t.Errorf("Jobs not in the right order.  (expected) %s != %s (actual)", expecteds, actuals)
-			t.FailNow()
+		case <-wait(wg):
+			tag = true
 		}
-	}
+		So(tag, ShouldBeTrue)
+
+		// Ensure the entries are in the right order.
+		expecteds := []string{"job2", "job4", "job5", "job1", "job3", "job0"}
+
+		var actuals []string
+		for _, entry := range cron.Entries() {
+			actuals = append(actuals, entry.Job.(testJob).name)
+		}
+
+		for i, expected := range expecteds {
+			So(actuals[i], ShouldResemble, expected)
+		}
+	})
+}
+
+func TestOncejob(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	cron := New()
+	cron.Start()
+	cron.AddOncejob(time.Now().Add(time.Second*2), FuncJob(func() { wg.Done() }))
+	defer cron.Stop()
+	Convey("Start, Once job.", t, func() {
+		tag := false
+		select {
+		case <-time.After(FIVE_SECOND):
+			// No job ran!
+
+		case <-wait(wg):
+			tag = true
+		}
+		So(tag, ShouldBeTrue)
+	})
 }
 
 func wait(wg *sync.WaitGroup) chan bool {

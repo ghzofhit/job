@@ -3,6 +3,8 @@ package job
 import (
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestConstantDelayNext(t *testing.T) {
@@ -40,12 +42,12 @@ func TestConstantDelayNext(t *testing.T) {
 		// Round to nearest second for both.
 		{"Mon Jul 9 14:45:00.005 2012", 15*time.Minute + 50*time.Nanosecond, "Mon Jul 9 15:00 2012"},
 	}
-
-	for _, c := range tests {
-		actual := Every(c.delay).Next(getTime(c.time))
-		expected := getTime(c.expected)
-		if actual != expected {
-			t.Errorf("%s, \"%s\": (expected) %v != %v (actual)", c.time, c.delay, expected, actual)
+	Convey("Test ConstantDelay should be equal.", t, func() {
+		for _, c := range tests {
+			actual := Every(c.delay).Next(getTime(c.time))
+			expected := getTime(c.expected)
+			So(expected, ShouldResemble, actual)
 		}
-	}
+	})
+
 }

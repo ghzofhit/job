@@ -1,9 +1,10 @@
 package job
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestRange(t *testing.T) {
@@ -27,13 +28,12 @@ func TestRange(t *testing.T) {
 		{"*", 1, 3, 1<<1 | 1<<2 | 1<<3 | starBit},
 		{"*/2", 1, 3, 1<<1 | 1<<3 | starBit},
 	}
-
-	for _, c := range ranges {
-		actual := getRange(c.expr, bounds{c.min, c.max, nil})
-		if actual != c.expected {
-			t.Errorf("%s => (expected) %d != %d (actual)", c.expr, c.expected, actual)
+	Convey("Test Range should be equal.", t, func() {
+		for _, c := range ranges {
+			actual := getRange(c.expr, bounds{c.min, c.max, nil})
+			So(c.expected, ShouldResemble, actual)
 		}
-	}
+	})
 }
 
 func TestField(t *testing.T) {
@@ -47,13 +47,12 @@ func TestField(t *testing.T) {
 		{"5,6,7", 1, 7, 1<<5 | 1<<6 | 1<<7},
 		{"1,5-7/2,3", 1, 7, 1<<1 | 1<<5 | 1<<7 | 1<<3},
 	}
-
-	for _, c := range fields {
-		actual := getField(c.expr, bounds{c.min, c.max, nil})
-		if actual != c.expected {
-			t.Errorf("%s => (expected) %d != %d (actual)", c.expr, c.expected, actual)
+	Convey("Test Field should be equal.", t, func() {
+		for _, c := range fields {
+			actual := getField(c.expr, bounds{c.min, c.max, nil})
+			So(c.expected, ShouldResemble, actual)
 		}
-	}
+	})
 }
 
 func TestBits(t *testing.T) {
@@ -68,13 +67,12 @@ func TestBits(t *testing.T) {
 		{dow, 0x7f},                  // 0-6: 7 ones
 	}
 
-	for _, c := range allBits {
-		actual := all(c.r) // all() adds the starBit, so compensate for that..
-		if c.expected|starBit != actual {
-			t.Errorf("%d-%d/%d => (expected) %b != %b (actual)",
-				c.r.min, c.r.max, 1, c.expected|starBit, actual)
+	Convey("Test Bits should be equal.", t, func() {
+		for _, c := range allBits {
+			actual := all(c.r) // all() adds the starBit, so compensate for that..
+			So(c.expected|starBit, ShouldResemble, actual)
 		}
-	}
+	})
 
 	bits := []struct {
 		min, max, step uint
@@ -86,14 +84,13 @@ func TestBits(t *testing.T) {
 		{1, 5, 2, 0x2a}, // 101010
 		{1, 4, 2, 0xa},  // 1010
 	}
-
-	for _, c := range bits {
-		actual := getBits(c.min, c.max, c.step)
-		if c.expected != actual {
-			t.Errorf("%d-%d/%d => (expected) %b != %b (actual)",
-				c.min, c.max, c.step, c.expected, actual)
+	Convey("Test Bits Step should be equal.", t, func() {
+		for _, c := range bits {
+			actual := getBits(c.min, c.max, c.step)
+			So(c.expected, ShouldResemble, actual)
 		}
-	}
+	})
+
 }
 
 func TestSpecSchedule(t *testing.T) {
@@ -104,11 +101,10 @@ func TestSpecSchedule(t *testing.T) {
 		{"* 5 * * * *", &SpecSchedule{all(seconds), 1 << 5, all(hours), all(dom), all(months), all(dow)}},
 		{"@every 5m", ConstantDelaySchedule{time.Duration(5) * time.Minute}},
 	}
-
-	for _, c := range entries {
-		actual := Parse(c.expr)
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("%s => (expected) %b != %b (actual)", c.expr, c.expected, actual)
+	Convey("Test SpecSchedule.", t, func() {
+		for _, c := range entries {
+			actual := Parse(c.expr)
+			So(c.expected, ShouldResemble, actual)
 		}
-	}
+	})
 }
