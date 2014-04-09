@@ -4,6 +4,7 @@ package job
 
 import (
 	"sort"
+	"sync/atomic"
 	"time"
 )
 
@@ -133,18 +134,18 @@ func (c *Cron) AddOncejob(once time.Time, cmd Job) int64 {
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
 func (c *Cron) Schedule(schedule Schedule, cmd Job) int64 {
-	c.increment = c.increment + 1
+	increment := c.getIncrement()
 	entry := &Entry{
 		Schedule: schedule,
 		Job:      cmd,
-		Id:       c.increment,
+		Id:       increment,
 	}
 	if !c.running {
 		c.entries = append(c.entries, entry)
-		return c.increment
+		return increment
 	}
 	c.add <- entry
-	return c.increment
+	return increment
 }
 
 // Entries returns a snapshot of the cron entries.
@@ -227,6 +228,11 @@ func (c *Cron) run() {
 func (c *Cron) Stop() {
 	c.stop <- struct{}{}
 	c.running = false
+}
+
+func (c *Cron) getIncrement() int64 {
+	atomic.AddInt64(&c.increment, 1)
+	return c.increment
 }
 
 // entrySnapshot returns a copy of the current cron entry list.
