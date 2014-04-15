@@ -1,4 +1,4 @@
-package job
+package main
 
 import (
 	"net/http"
@@ -13,6 +13,5 @@ func (c *Call) Run() {
 	if err != nil {
 		// handle error
 	}
-
 	defer resp.Body.Close()
 }

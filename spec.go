@@ -1,4 +1,4 @@
-package job
+package main
 
 import (
 	"time"

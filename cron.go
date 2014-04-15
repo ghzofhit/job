@@ -1,10 +1,10 @@
 // This library implements a cron spec parser and runner.  See the README for
 // more details.
-package job
+package main
 
 import (
 	"sort"
-	"sync/atomic"
+	//	"sync/atomic"
 	"time"
 )
 
@@ -134,7 +134,8 @@ func (c *Cron) AddOncejob(once time.Time, cmd Job) int64 {
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
 func (c *Cron) Schedule(schedule Schedule, cmd Job) int64 {
-	increment := c.getIncrement()
+	var increment int64
+	increment = c.getIncrement()
 	entry := &Entry{
 		Schedule: schedule,
 		Job:      cmd,
@@ -231,7 +232,8 @@ func (c *Cron) Stop() {
 }
 
 func (c *Cron) getIncrement() int64 {
-	atomic.AddInt64(&c.increment, 1)
+	//	atomic.AddInt64(&c.increment, 1)
+	c.increment = c.increment + 1
 	return c.increment
 }
 
