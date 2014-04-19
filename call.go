@@ -15,3 +15,17 @@ func (c *Call) Run() {
 	}
 	defer resp.Body.Close()
 }
+
+func CallUrl(url string, id int64) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		// handle error
+		return err
+	}
+	if resp.StatusCode == 200 {
+		//
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}

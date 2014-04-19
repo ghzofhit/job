@@ -4,7 +4,7 @@ package main
 
 import (
 	"sort"
-	//	"sync/atomic"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,7 +23,7 @@ type Cron struct {
 
 // Job is an interface for submitted cron jobs.
 type Job interface {
-	Run()
+	Run(int64)
 }
 
 // The Schedule describes a job's duty cycle.
@@ -98,12 +98,12 @@ func New() *Cron {
 }
 
 // A wrapper that turns a func() into a cron.Job
-type FuncJob func()
+type FuncJob func(id int64)
 
-func (f FuncJob) Run() { f() }
+func (f FuncJob) Run(id int64) { f(id) }
 
 // AddFunc adds a func to the Cron to be run on the given schedule.
-func (c *Cron) AddFunc(spec string, cmd func()) int64 {
+func (c *Cron) AddFunc(spec string, cmd func(id int64)) int64 {
 	return c.AddJob(spec, FuncJob(cmd))
 }
 
@@ -193,7 +193,7 @@ func (c *Cron) run() {
 				if c.entries[i].Next != effective {
 					break
 				}
-				go c.entries[i].Job.Run()
+				go c.entries[i].Job.Run(c.entries[i].Id)
 				c.entries[i].Prev = c.entries[i].Next
 				c.entries[i].Next = c.entries[i].Schedule.Next(effective)
 				if c.entries[i].Next.IsZero() {
@@ -232,8 +232,8 @@ func (c *Cron) Stop() {
 }
 
 func (c *Cron) getIncrement() int64 {
-	//	atomic.AddInt64(&c.increment, 1)
-	c.increment = c.increment + 1
+	atomic.AddInt64(&c.increment, 1)
+	//c.increment = c.increment + 1
 	return c.increment
 }
 

@@ -41,7 +41,7 @@ func TestStopCausesJobsToNotRun(t *testing.T) {
 	cron := New()
 	cron.Start()
 	cron.Stop()
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
 	Convey("Start, stop, then add an entry. Verify entry doesn't run.", t, func() {
 		tag := false
 		select {
@@ -61,7 +61,7 @@ func TestAddBeforeRunning(t *testing.T) {
 	wg.Add(1)
 
 	cron := New()
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
 	cron.Start()
 	defer cron.Stop()
 
@@ -84,8 +84,8 @@ func TestDelBeforeRunning(t *testing.T) {
 	wg.Add(1)
 
 	cron := New()
-	id := cron.AddFunc("*/5 * * * * ?", func() { wg.Done() })
-	cron.AddFunc("0 0 0 1 1 ?", func() {})
+	id := cron.AddFunc("*/5 * * * * ?", func(id int64) { wg.Done() })
+	cron.AddFunc("0 0 0 1 1 ?", func(id int64) {})
 	cron.DelJob(id)
 	cron.Start()
 	defer cron.Stop()
@@ -111,7 +111,7 @@ func TestAddWhileRunning(t *testing.T) {
 	cron := New()
 	cron.Start()
 	defer cron.Stop()
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
 	Convey("Start cron, add a job, expect it runs.", t, func() {
 		tag := false
 		select {
@@ -130,8 +130,8 @@ func TestDelWhileRunning(t *testing.T) {
 	wg.Add(1)
 
 	cron := New()
-	id := cron.AddFunc("*/5 * * * * ?", func() { wg.Done() })
-	cron.AddFunc("0 0 0 1 1 ?", func() {})
+	id := cron.AddFunc("*/5 * * * * ?", func(id int64) { wg.Done() })
+	cron.AddFunc("0 0 0 1 1 ?", func(id int64) {})
 	cron.Start()
 	cron.DelJob(id)
 
@@ -155,7 +155,7 @@ func TestSnapshotEntries(t *testing.T) {
 	wg.Add(1)
 
 	cron := New()
-	cron.AddFunc("@every 2s", func() { wg.Done() })
+	cron.AddFunc("@every 2s", func(id int64) { wg.Done() })
 	cron.Start()
 	defer cron.Stop()
 
@@ -186,10 +186,10 @@ func TestMultipleEntries(t *testing.T) {
 	wg.Add(2)
 
 	cron := New()
-	cron.AddFunc("0 0 0 1 1 ?", func() {})
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
-	cron.AddFunc("0 0 0 31 12 ?", func() {})
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	cron.AddFunc("0 0 0 1 1 ?", func(id int64) {})
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
+	cron.AddFunc("0 0 0 31 12 ?", func(id int64) {})
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
 
 	cron.Start()
 	defer cron.Stop()
@@ -212,9 +212,9 @@ func TestRunningJobTwice(t *testing.T) {
 	wg.Add(2)
 
 	cron := New()
-	cron.AddFunc("0 0 0 1 1 ?", func() {})
-	cron.AddFunc("0 0 0 31 12 ?", func() {})
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
+	cron.AddFunc("0 0 0 1 1 ?", func(id int64) {})
+	cron.AddFunc("0 0 0 31 12 ?", func(id int64) {})
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
 
 	cron.Start()
 	defer cron.Stop()
@@ -236,12 +236,12 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	wg.Add(2)
 
 	cron := New()
-	cron.AddFunc("0 0 0 1 1 ?", func() {})
-	cron.AddFunc("0 0 0 31 12 ?", func() {})
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
-	cron.Schedule(Every(time.Minute), FuncJob(func() {}))
-	cron.Schedule(Every(time.Second), FuncJob(func() { wg.Done() }))
-	cron.Schedule(Every(time.Hour), FuncJob(func() {}))
+	cron.AddFunc("0 0 0 1 1 ?", func(id int64) {})
+	cron.AddFunc("0 0 0 31 12 ?", func(id int64) {})
+	cron.AddFunc("* * * * * ?", func(id int64) { wg.Done() })
+	cron.Schedule(Every(time.Minute), FuncJob(func(id int64) {}))
+	cron.Schedule(Every(time.Second), FuncJob(func(id int64) { wg.Done() }))
+	cron.Schedule(Every(time.Hour), FuncJob(func(id int64) {}))
 
 	cron.Start()
 	defer cron.Stop()
@@ -267,7 +267,7 @@ func TestLocalTimezone(t *testing.T) {
 		now.Second()+1, now.Minute(), now.Hour(), now.Day(), now.Month())
 
 	cron := New()
-	cron.AddFunc(spec, func() { wg.Done() })
+	cron.AddFunc(spec, func(id int64) { wg.Done() })
 	cron.Start()
 	defer cron.Stop()
 	Convey("Test that the cron is run in the local time zone (as opposed to UTC).", t, func() {
@@ -287,7 +287,7 @@ type testJob struct {
 	name string
 }
 
-func (t testJob) Run() {
+func (t testJob) Run(id int64) {
 	t.wg.Done()
 }
 
@@ -336,7 +336,7 @@ func TestOncejob(t *testing.T) {
 
 	cron := New()
 	cron.Start()
-	cron.AddOncejob(time.Now().Add(time.Second*2), FuncJob(func() { wg.Done() }))
+	cron.AddOncejob(time.Now().Add(time.Second*2), FuncJob(func(id int64) { wg.Done() }))
 	defer cron.Stop()
 	Convey("Start, Once job.", t, func() {
 		tag := false
